@@ -36,6 +36,8 @@ class CSChatbotProfessional {
     
     private static $instance = null;
     private $options = [];
+    private $external_db = null;
+    private $current_language = 'en';
     
     public static function getInstance() {
         if (self::$instance === null) {
@@ -46,11 +48,85 @@ class CSChatbotProfessional {
     
     private function __construct() {
         $this->load_options();
+        $this->detect_language();
+        $this->init_external_db();
         $this->init_hooks();
     }
     
     private function load_options() {
         $this->options = get_option('cs_chatbot_options', []);
+    }
+    
+    /**
+     * Detect user language from browser or URL
+     */
+    private function detect_language() {
+        // Check URL parameter first
+        if (isset($_GET['lang'])) {
+            $lang = sanitize_text_field($_GET['lang']);
+            if (in_array($lang, ['en', 'th'])) {
+                $this->current_language = $lang;
+                return;
+            }
+        }
+        
+        // Check WordPress locale
+        $locale = get_locale();
+        if (strpos($locale, 'th') === 0) {
+            $this->current_language = 'th';
+        } else {
+            $this->current_language = 'en';
+        }
+        
+        // Check browser language as fallback
+        if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
+            $browser_lang = $_SERVER['HTTP_ACCEPT_LANGUAGE'];
+            if (strpos($browser_lang, 'th') !== false) {
+                $this->current_language = 'th';
+            }
+        }
+    }
+    
+    /**
+     * Initialize external database connection
+     */
+    private function init_external_db() {
+        $db_config = $this->get_external_db_config();
+        
+        if (!empty($db_config['host']) && !empty($db_config['database'])) {
+            try {
+                $this->external_db = new wpdb(
+                    $db_config['username'] ?? '',
+                    $db_config['password'] ?? '',
+                    $db_config['database'],
+                    $db_config['host']
+                );
+                
+                // Test connection
+                $this->external_db->get_results("SELECT 1");
+                
+                if (!empty($this->external_db->last_error)) {
+                    error_log('CS Chatbot: External DB connection failed - ' . $this->external_db->last_error);
+                    $this->external_db = null;
+                }
+            } catch (Exception $e) {
+                error_log('CS Chatbot: External DB connection error - ' . $e->getMessage());
+                $this->external_db = null;
+            }
+        }
+    }
+    
+    /**
+     * Get external database configuration
+     */
+    private function get_external_db_config() {
+        return [
+            'host' => $this->options['external_db_host'] ?? '',
+            'database' => $this->options['external_db_name'] ?? '',
+            'username' => $this->options['external_db_user'] ?? '',
+            'password' => $this->options['external_db_pass'] ?? '',
+            'table_prefix' => $this->options['external_db_prefix'] ?? 'wp_',
+        ];
     }
     
     private function init_hooks() {
@@ -70,6 +146,7 @@ class CSChatbotProfessional {
         add_action('wp_ajax_cs_chatbot_save_settings', [$this, 'ajax_save_settings']);
         add_action('wp_ajax_cs_chatbot_get_analytics', [$this, 'ajax_get_analytics']);
         add_action('wp_ajax_cs_chatbot_test_api', [$this, 'ajax_test_api']);
+        add_action('wp_ajax_cs_chatbot_test_external_db', [$this, 'ajax_test_external_db']);
         add_action('wp_ajax_cs_chatbot_start_live_chat', [$this, 'ajax_start_live_chat']);
         
         // REST API
@@ -163,11 +240,15 @@ class CSChatbotProfessional {
                 'position' => $this->get_option('widget_position', 'bottom-right'),
                 'theme' => $this->get_option('widget_theme', 'modern'),
                 'welcome_message' => $this->get_option('welcome_message', __('Hello! How can I help you today?', 'cs-chatbot')),
+                'welcome_message_th' => $this->get_option('welcome_message_th', 'สวัสดีครับ/ค่ะ! มีอะไรให้ช่วยเหลือไหมครับ/ค่ะ?'),
                 'placeholder' => $this->get_option('input_placeholder', __('Type your message...', 'cs-chatbot')),
                 'typing_indicator' => $this->get_option('show_typing_indicator', true),
                 'sound_enabled' => $this->get_option('enable_sound', true),
                 'auto_open' => $this->get_option('auto_open_chat', false),
-                'auto_open_delay' => $this->get_option('auto_open_delay', 5000)
+                'auto_open_delay' => $this->get_option('auto_open_delay', 5000),
+                'default_language' => $this->get_option('default_language', 'en'),
+                'auto_detect_language' => $this->get_option('auto_detect_language', true),
+                'primary_color' => $this->get_option('primary_color', '#007cba')
             ],
             'strings' => [
                 'send' => __('Send', 'cs-chatbot'),
@@ -737,6 +818,91 @@ class CSChatbotProfessional {
                 </table>
             </div>
             
+            <!-- External Knowledge Base Settings -->
+            <div class="cs-chatbot-settings-section">
+                <h3><?php _e('External Knowledge Base', 'cs-chatbot'); ?></h3>
+                <p class="description"><?php _e('Connect to an external WordPress database to use as a knowledge base for more accurate responses.', 'cs-chatbot'); ?></p>
+                <table class="form-table">
+                    <tr>
+                        <th><label for="external_db_host"><?php _e('Database Host', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <input type="text" id="external_db_host" name="external_db_host" value="<?php echo esc_attr($this->get_option('external_db_host', '')); ?>" class="regular-text" placeholder="staging.uptowntrading.co.th" />
+                            <p class="description"><?php _e('Database server hostname or IP address', 'cs-chatbot'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label for="external_db_name"><?php _e('Database Name', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <input type="text" id="external_db_name" name="external_db_name" value="<?php echo esc_attr($this->get_option('external_db_name', '')); ?>" class="regular-text" />
+                            <p class="description"><?php _e('Name of the WordPress database', 'cs-chatbot'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label for="external_db_user"><?php _e('Database Username', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <input type="text" id="external_db_user" name="external_db_user" value="<?php echo esc_attr($this->get_option('external_db_user', '')); ?>" class="regular-text" />
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label for="external_db_pass"><?php _e('Database Password', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <input type="password" id="external_db_pass" name="external_db_pass" value="<?php echo esc_attr($this->get_option('external_db_pass', '')); ?>" class="regular-text" />
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label for="external_db_prefix"><?php _e('Table Prefix', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <input type="text" id="external_db_prefix" name="external_db_prefix" value="<?php echo esc_attr($this->get_option('external_db_prefix', 'wp_')); ?>" class="regular-text" />
+                            <p class="description"><?php _e('WordPress table prefix (usually wp_)', 'cs-chatbot'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><?php _e('Connection Test', 'cs-chatbot'); ?></th>
+                        <td>
+                            <button type="button" id="test-external-db" class="button button-secondary"><?php _e('Test Database Connection', 'cs-chatbot'); ?></button>
+                            <div id="db-test-result" style="margin-top: 10px;"></div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- Language Settings -->
+            <div class="cs-chatbot-settings-section">
+                <h3><?php _e('Language & Localization', 'cs-chatbot'); ?></h3>
+                <table class="form-table">
+                    <tr>
+                        <th><label for="default_language"><?php _e('Default Language', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <select id="default_language" name="default_language">
+                                <option value="en" <?php selected($this->get_option('default_language', 'en'), 'en'); ?>><?php _e('English', 'cs-chatbot'); ?></option>
+                                <option value="th" <?php selected($this->get_option('default_language', 'en'), 'th'); ?>><?php _e('Thai (ไทย)', 'cs-chatbot'); ?></option>
+                            </select>
+                            <p class="description"><?php _e('Default language for the chatbot responses', 'cs-chatbot'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label for="auto_detect_language"><?php _e('Auto-detect Language', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <input type="checkbox" id="auto_detect_language" name="auto_detect_language" value="1" <?php checked($this->get_option('auto_detect_language', true)); ?> />
+                            <p class="description"><?php _e('Automatically detect user language from browser settings', 'cs-chatbot'); ?></p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <th><label for="welcome_message_th"><?php _e('Welcome Message (Thai)', 'cs-chatbot'); ?></label></th>
+                        <td>
+                            <textarea id="welcome_message_th" name="welcome_message_th" rows="3" class="large-text"><?php echo esc_textarea($this->get_option('welcome_message_th', 'สวัสดีครับ/ค่ะ! มีอะไรให้ช่วยเหลือไหมครับ/ค่ะ?')); ?></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            
             <p class="submit">
                 <input type="submit" name="submit" class="button button-primary" value="<?php _e('Save Settings', 'cs-chatbot'); ?>" />
             </p>
@@ -1121,6 +1287,74 @@ class CSChatbotProfessional {
         }
     }
     
+    public function ajax_test_external_db() {
+        check_ajax_referer('cs_chatbot_nonce', 'nonce');
+        
+        if (!current_user_can('manage_options')) {
+            wp_die(__('Insufficient permissions', 'cs-chatbot'));
+        }
+        
+        $db_config = [
+            'host' => sanitize_text_field($_POST['host'] ?? ''),
+            'database' => sanitize_text_field($_POST['database'] ?? ''),
+            'username' => sanitize_text_field($_POST['username'] ?? ''),
+            'password' => sanitize_text_field($_POST['password'] ?? ''),
+            'table_prefix' => sanitize_text_field($_POST['prefix'] ?? 'wp_'),
+        ];
+        
+        if (empty($db_config['host']) || empty($db_config['database'])) {
+            wp_send_json_error([
+                'message' => __('❌ Please provide at least host and database name.', 'cs-chatbot'),
+                'status' => 'error'
+            ]);
+        }
+        
+        try {
+            $test_db = new wpdb(
+                $db_config['username'],
+                $db_config['password'],
+                $db_config['database'],
+                $db_config['host']
+            );
+            
+            // Test basic connection
+            $result = $test_db->get_results("SELECT 1 as test");
+            
+            if (!empty($test_db->last_error)) {
+                wp_send_json_error([
+                    'message' => __('❌ Database connection failed: ', 'cs-chatbot') . $test_db->last_error,
+                    'status' => 'error'
+                ]);
+            }
+            
+            // Test WordPress tables existence
+            $posts_table = $db_config['table_prefix'] . 'posts';
+            $table_check = $test_db->get_var("SHOW TABLES LIKE '$posts_table'");
+            
+            if (!$table_check) {
+                wp_send_json_error([
+                    'message' => __('❌ WordPress tables not found. Please check the table prefix.', 'cs-chatbot'),
+                    'status' => 'error'
+                ]);
+            }
+            
+            // Count available posts
+            $post_count = $test_db->get_var("SELECT COUNT(*) FROM $posts_table WHERE post_status = 'publish'");
+            
+            wp_send_json_success([
+                'message' => sprintf(__('✅ External database connected successfully! Found %d published posts.', 'cs-chatbot'), $post_count),
+                'post_count' => $post_count,
+                'status' => 'success'
+            ]);
+            
+        } catch (Exception $e) {
+            wp_send_json_error([
+                'message' => __('❌ Database connection error: ', 'cs-chatbot') . $e->getMessage(),
+                'status' => 'error'
+            ]);
+        }
+    }
+    
     public function ajax_start_live_chat() {
         check_ajax_referer('cs_chatbot_nonce', 'nonce');
         
@@ -1146,8 +1380,11 @@ class CSChatbotProfessional {
     
     // Core Functions
     private function generate_ai_response($message, $conversation_id = 0) {
-        // Try OpenRouter API first
-        $openrouter_response = $this->generate_openrouter_response($message, $conversation_id);
+        // Check external knowledge base first
+        $kb_response = $this->search_external_knowledge_base($message);
+        
+        // Try OpenRouter API with enhanced context
+        $openrouter_response = $this->generate_openrouter_response($message, $conversation_id, $kb_response);
         if ($openrouter_response) {
             return $openrouter_response;
         }
@@ -1156,7 +1393,7 @@ class CSChatbotProfessional {
         return $this->generate_fallback_response($message, $conversation_id);
     }
     
-    private function generate_openrouter_response($message, $conversation_id = 0) {
+    private function generate_openrouter_response($message, $conversation_id = 0, $kb_context = '') {
         $api_key = $this->get_option('openrouter_api_key', '');
         
         if (empty($api_key)) {
@@ -1164,11 +1401,24 @@ class CSChatbotProfessional {
         }
         
         $context = $this->get_conversation_context($conversation_id);
-        $personality = $this->get_option('ai_personality', 'You are a helpful and friendly customer service assistant. Respond naturally and conversationally.');
+        $personality = $this->get_multilingual_personality();
         $model = $this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free');
         
+        $system_message = $personality;
+        
+        // Add knowledge base context if available
+        if (!empty($kb_context)) {
+            $system_message .= "\n\nRelevant information from knowledge base:\n" . $kb_context;
+        }
+        
+        // Add language instruction
+        $lang_instruction = $this->get_language_instruction();
+        if (!empty($lang_instruction)) {
+            $system_message .= "\n\n" . $lang_instruction;
+        }
+        
         $messages = [
-            ['role' => 'system', 'content' => $personality]
+            ['role' => 'system', 'content' => $system_message]
         ];
         
         // Add conversation context
@@ -1283,6 +1533,108 @@ class CSChatbotProfessional {
         }
         
         return false;
+    }
+    
+    /**
+     * Search external knowledge base
+     */
+    private function search_external_knowledge_base($message) {
+        if (!$this->external_db) {
+            return '';
+        }
+        
+        $db_config = $this->get_external_db_config();
+        $table_prefix = $db_config['table_prefix'];
+        
+        // Search in posts table for relevant content
+        $search_terms = $this->extract_search_terms($message);
+        if (empty($search_terms)) {
+            return '';
+        }
+        
+        $search_query = implode(' ', array_map(function($term) {
+            return $this->external_db->esc_like($term);
+        }, $search_terms));
+        
+        // Search in posts
+        $posts_table = $table_prefix . 'posts';
+        $results = $this->external_db->get_results($this->external_db->prepare(
+            "SELECT post_title, post_content, post_excerpt 
+             FROM $posts_table 
+             WHERE post_status = 'publish' 
+             AND post_type IN ('post', 'page', 'product') 
+             AND (post_title LIKE %s OR post_content LIKE %s OR post_excerpt LIKE %s)
+             ORDER BY 
+                CASE 
+                    WHEN post_title LIKE %s THEN 1
+                    WHEN post_excerpt LIKE %s THEN 2
+                    ELSE 3
+                END,
+                CHAR_LENGTH(post_content) ASC
+             LIMIT 3",
+            '%' . $search_query . '%',
+            '%' . $search_query . '%',
+            '%' . $search_query . '%',
+            '%' . $search_query . '%',
+            '%' . $search_query . '%'
+        ));
+        
+        if (empty($results)) {
+            return '';
+        }
+        
+        $context = '';
+        foreach ($results as $result) {
+            $title = $result->post_title;
+            $content = !empty($result->post_excerpt) ? $result->post_excerpt : wp_trim_words(strip_tags($result->post_content), 50);
+            $context .= "Title: $title\nContent: $content\n\n";
+        }
+        
+        return trim($context);
+    }
+    
+    /**
+     * Extract search terms from message
+     */
+    private function extract_search_terms($message) {
+        // Remove common words and extract meaningful terms
+        $common_words = ['the', 'is', 'at', 'which', 'on', 'and', 'a', 'to', 'are', 'as', 'was', 'with', 'for', 'can', 'you', 'what', 'how', 'where', 'when', 'why', 'do', 'does', 'did', 'will', 'would', 'could', 'should'];
+        
+        // Thai common words
+        if ($this->current_language === 'th') {
+            $common_words = array_merge($common_words, ['ที่', 'และ', 'หรือ', 'ใน', 'จาก', 'เป็น', 'มี', 'ได้', 'จะ', 'ไม่', 'ของ', 'กับ', 'ให้', 'ถ้า', 'แล้ว', 'ยัง', 'เพื่อ', 'ต้อง', 'อยู่', 'ไป']);
+        }
+        
+        $words = preg_split('/\s+/', strtolower($message));
+        $terms = array_filter($words, function($word) use ($common_words) {
+            return strlen($word) > 2 && !in_array($word, $common_words);
+        });
+        
+        return array_values($terms);
+    }
+    
+    /**
+     * Get multilingual personality based on current language
+     */
+    private function get_multilingual_personality() {
+        $base_personality = $this->get_option('ai_personality', 'You are a helpful and friendly customer service assistant. Respond naturally and conversationally.');
+        
+        if ($this->current_language === 'th') {
+            return $base_personality . ' คุณสามารถตอบคำถามเป็นภาษาไทยได้อย่างเป็นธรรมชาติ และเข้าใจวัฒนธรรมไทย';
+        }
+        
+        return $base_personality;
+    }
+    
+    /**
+     * Get language instruction for AI
+     */
+    private function get_language_instruction() {
+        if ($this->current_language === 'th') {
+            return 'Please respond in Thai language (ภาษาไทย). Be culturally appropriate and use polite Thai language forms. If the user writes in English, you may respond in English, but prefer Thai when possible.';
+        }
+        
+        return 'Please respond in English. If the user writes in Thai, you may respond in Thai, but prefer English when possible.';
     }
     
     private function get_conversation_context($conversation_id, $limit = 5) {
@@ -1423,6 +1775,7 @@ class CSChatbotProfessional {
                 case 'show_typing_indicator':
                 case 'enable_sound':
                 case 'enable_live_chat':
+                case 'auto_detect_language':
                     $sanitized_settings[$key] = (bool) $value;
                     break;
                     
@@ -1431,16 +1784,23 @@ class CSChatbotProfessional {
                 case 'widget_theme':
                 case 'widget_size':
                 case 'ai_model':
+                case 'default_language':
+                case 'external_db_host':
+                case 'external_db_name':
+                case 'external_db_user':
+                case 'external_db_prefix':
                     $sanitized_settings[$key] = sanitize_text_field($value);
                     break;
                     
                 case 'welcome_message':
                 case 'ai_personality':
                 case 'offline_message':
+                case 'welcome_message_th':
                     $sanitized_settings[$key] = sanitize_textarea_field($value);
                     break;
                     
                 case 'openrouter_api_key':
+                case 'external_db_pass':
                     $sanitized_settings[$key] = sanitize_text_field($value);
                     break;
                     

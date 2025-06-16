@@ -9,8 +9,9 @@ A comprehensive WordPress chatbot plugin with AI-powered customer service, live 
 - **Default Model**: DeepSeek R1 Qwen3 8B (Free tier available)
 - **Multiple Models**: GPT-3.5, GPT-4o Mini, Claude 3 Haiku, Llama 3.2, Phi-3 Mini
 - **Smart Responses**: Context-aware conversations with natural language processing
-- **Knowledge Base**: Custom Q&A management
-- **Multi-language Support**: Internationalization ready
+- **Knowledge Base**: Custom Q&A management + External database integration
+- **Multi-language Support**: Thai/English with auto-detection
+- **External Database**: Connect to external WordPress sites as knowledge base
 
 ### 💬 **Live Chat Management**
 - **Real-time Chat**: Live agent support
@@ -39,6 +40,20 @@ A comprehensive WordPress chatbot plugin with AI-powered customer service, live 
 - **Sound Notifications**: Audio alerts for new messages
 - **Conversation History**: Complete chat logs
 - **Knowledge Base Search**: Instant answer lookup
+
+### 🌐 **Multilingual Support**
+- **Thai/English**: Native support for both languages
+- **Auto-detection**: Browser language detection
+- **URL Parameters**: Language switching via ?lang=th or ?lang=en
+- **Separate Welcome Messages**: Customizable greetings per language
+- **Cultural Awareness**: AI understands Thai culture and context
+
+### 🗄️ **External Knowledge Base**
+- **WordPress Integration**: Connect to external WordPress databases
+- **Content Search**: Search posts, pages, and products
+- **Smart Ranking**: Relevance-based content retrieval
+- **Connection Testing**: Built-in database connectivity testing
+- **Secure Access**: Encrypted database credentials
 
 ## 📋 **Requirements**
 
@@ -95,6 +110,25 @@ git clone https://github.com/your-repo/cs-chatbot-professional.git
 2. Create categories for organization
 3. Add questions and answers
 4. Use keywords for better matching
+
+### **External Database Configuration**
+1. Navigate to **Settings** → **External Knowledge Base**
+2. Enter database connection details:
+   - **Host**: Database server (e.g., staging.uptowntrading.co.th)
+   - **Database Name**: WordPress database name
+   - **Username/Password**: Database credentials
+   - **Table Prefix**: WordPress table prefix (usually wp_)
+3. Click **Test Database Connection** to verify
+4. Save settings to enable external content search
+
+### **Language Configuration**
+1. Go to **Settings** → **Language & Localization**
+2. Set default language (English/Thai)
+3. Enable auto-detection for browser language
+4. Configure welcome messages for each language:
+   - **English**: Standard welcome message
+   - **Thai**: Thai welcome message (สวัสดีครับ/ค่ะ!)
+5. Test language switching with URL parameters (?lang=th or ?lang=en)
 
 ## 🎯 **Usage Guide**
 

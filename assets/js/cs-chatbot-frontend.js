@@ -16,6 +16,7 @@
             this.isTyping = false;
             this.settings = csChatbotFrontend.settings || {};
             this.strings = csChatbotFrontend.strings || {};
+            this.currentLanguage = this.detectLanguage();
             
             this.init();
         }
@@ -127,6 +128,42 @@
             return visitorId;
         }
 
+        detectLanguage() {
+            // Check URL parameter first
+            const urlParams = new URLSearchParams(window.location.search);
+            const langParam = urlParams.get('lang');
+            if (langParam && (langParam === 'th' || langParam === 'en')) {
+                return langParam;
+            }
+
+            // Check if auto-detect is enabled
+            if (!this.settings.auto_detect_language) {
+                return this.settings.default_language || 'en';
+            }
+
+            // Check browser language
+            const browserLang = navigator.language || navigator.userLanguage;
+            if (browserLang && browserLang.toLowerCase().startsWith('th')) {
+                return 'th';
+            }
+
+            // Check HTML lang attribute
+            const htmlLang = document.documentElement.lang;
+            if (htmlLang && htmlLang.toLowerCase().startsWith('th')) {
+                return 'th';
+            }
+
+            // Default to configured language or English
+            return this.settings.default_language || 'en';
+        }
+
+        getWelcomeMessage() {
+            if (this.currentLanguage === 'th' && this.settings.welcome_message_th) {
+                return this.settings.welcome_message_th;
+            }
+            return this.settings.welcome_message || this.strings.welcome || 'Hello! How can I help you today?';
+        }
+
         startSession() {
             // Track page visit
             this.trackEvent('page_visit', {
@@ -163,6 +200,11 @@
             
             // Clear notification badge
             $('#notification-badge').hide();
+            
+            // Add welcome message if no messages exist
+            if ($('#chat-messages .message').length === 0) {
+                this.addMessage(this.getWelcomeMessage(), 'bot');
+            }
         }
 
         closeChat() {
@@ -337,7 +379,7 @@
             this.conversationId = null;
             
             // Add welcome message
-            this.addMessage(this.settings.welcome_message || this.strings.welcome, 'bot');
+            this.addMessage(this.getWelcomeMessage(), 'bot');
             
             // Track event
             this.trackEvent('conversation_restarted');

@@ -61,6 +61,7 @@
             // Settings
             $(document).on('submit', '#cs-chatbot-settings-form', this.saveSettings.bind(this));
             $(document).on('click', '#test-openrouter-api', this.testAPI.bind(this));
+            $(document).on('click', '#test-external-db', this.testExternalDB.bind(this));
             
             // Auto-refresh for live features
             this.startAutoRefresh();
@@ -892,6 +893,52 @@
                 })
                 .always(() => {
                     $button.prop('disabled', false).text('Test API Connection');
+                });
+        }
+
+        testExternalDB() {
+            const $button = $('#test-external-db');
+            const $result = $('#db-test-result');
+            
+            $button.prop('disabled', true).text('Testing...');
+            $result.html('<div class="notice notice-info"><p>Testing external database connection...</p></div>');
+            
+            const data = {
+                action: 'cs_chatbot_test_external_db',
+                nonce: csChatbotAjax.nonce,
+                host: $('#external_db_host').val(),
+                database: $('#external_db_name').val(),
+                username: $('#external_db_user').val(),
+                password: $('#external_db_pass').val(),
+                prefix: $('#external_db_prefix').val()
+            };
+
+            $.post(csChatbotAjax.ajaxurl, data)
+                .done((response) => {
+                    if (response.success) {
+                        $result.html(`
+                            <div class="notice notice-success">
+                                <p><strong>${response.data.message}</strong></p>
+                                ${response.data.post_count ? `<p><em>Available content:</em> ${response.data.post_count} posts for knowledge base</p>` : ''}
+                            </div>
+                        `);
+                    } else {
+                        $result.html(`
+                            <div class="notice notice-error">
+                                <p><strong>${response.data.message}</strong></p>
+                            </div>
+                        `);
+                    }
+                })
+                .fail((xhr, status, error) => {
+                    $result.html(`
+                        <div class="notice notice-error">
+                            <p><strong>Database test failed:</strong> ${error}</p>
+                        </div>
+                    `);
+                })
+                .always(() => {
+                    $button.prop('disabled', false).text('Test Database Connection');
                 });
         }
 
