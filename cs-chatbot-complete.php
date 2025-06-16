@@ -602,20 +602,12 @@ class CSChatbotProfessional {
                 <h3><?php _e('AI Configuration', 'cs-chatbot'); ?></h3>
                 <table class="form-table">
                     <tr>
-                        <th><?php _e('SEO-Forge API', 'cs-chatbot'); ?></th>
+                        <th><label for="openrouter_api_key"><?php _e('OpenRouter API Key', 'cs-chatbot'); ?></label></th>
                         <td>
-                            <p class="description"><?php _e('✅ Primary AI API for chatbot responses (No API key required)', 'cs-chatbot'); ?><br>
-                            <?php _e('Powered by https://seo-forge.bitebase.app', 'cs-chatbot'); ?></p>
-                            <button type="button" id="test-seo-forge-api" class="button button-secondary"><?php _e('Test API Connection', 'cs-chatbot'); ?></button>
+                            <input type="password" id="openrouter_api_key" name="openrouter_api_key" value="<?php echo esc_attr($this->get_option('openrouter_api_key', '')); ?>" class="regular-text" />
+                            <p class="description"><?php _e('Your OpenRouter API key for AI-powered responses. Get one at https://openrouter.ai', 'cs-chatbot'); ?></p>
+                            <button type="button" id="test-openrouter-api" class="button button-secondary"><?php _e('Test API Connection', 'cs-chatbot'); ?></button>
                             <div id="api-test-result" style="margin-top: 10px;"></div>
-                        </td>
-                    </tr>
-                    
-                    <tr>
-                        <th><label for="openai_api_key"><?php _e('OpenAI API Key (Optional)', 'cs-chatbot'); ?></label></th>
-                        <td>
-                            <input type="password" id="openai_api_key" name="openai_api_key" value="<?php echo esc_attr($this->get_option('openai_api_key', '')); ?>" class="regular-text" />
-                            <p class="description"><?php _e('Optional fallback API when SEO-Forge API is unavailable', 'cs-chatbot'); ?></p>
                         </td>
                     </tr>
                     
@@ -623,16 +615,22 @@ class CSChatbotProfessional {
                         <th><label for="ai_model"><?php _e('AI Model', 'cs-chatbot'); ?></label></th>
                         <td>
                             <select id="ai_model" name="ai_model">
-                                <option value="gpt-3.5-turbo" <?php selected($this->get_option('ai_model', 'gpt-3.5-turbo'), 'gpt-3.5-turbo'); ?>>GPT-3.5 Turbo</option>
-                                <option value="gpt-4" <?php selected($this->get_option('ai_model', 'gpt-3.5-turbo'), 'gpt-4'); ?>>GPT-4</option>
+                                <option value="deepseek/deepseek-r1-0528-qwen3-8b:free" <?php selected($this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free'), 'deepseek/deepseek-r1-0528-qwen3-8b:free'); ?>>DeepSeek R1 Qwen3 8B (Free)</option>
+                                <option value="meta-llama/llama-3.2-3b-instruct:free" <?php selected($this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free'), 'meta-llama/llama-3.2-3b-instruct:free'); ?>>Llama 3.2 3B (Free)</option>
+                                <option value="microsoft/phi-3-mini-128k-instruct:free" <?php selected($this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free'), 'microsoft/phi-3-mini-128k-instruct:free'); ?>>Phi-3 Mini (Free)</option>
+                                <option value="openai/gpt-3.5-turbo" <?php selected($this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free'), 'openai/gpt-3.5-turbo'); ?>>GPT-3.5 Turbo</option>
+                                <option value="openai/gpt-4o-mini" <?php selected($this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free'), 'openai/gpt-4o-mini'); ?>>GPT-4o Mini</option>
+                                <option value="anthropic/claude-3-haiku" <?php selected($this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free'), 'anthropic/claude-3-haiku'); ?>>Claude 3 Haiku</option>
                             </select>
+                            <p class="description"><?php _e('Choose the AI model for generating responses. Free models are available with rate limits.', 'cs-chatbot'); ?></p>
                         </td>
                     </tr>
                     
                     <tr>
                         <th><label for="ai_personality"><?php _e('AI Personality', 'cs-chatbot'); ?></label></th>
                         <td>
-                            <textarea id="ai_personality" name="ai_personality" rows="3" class="large-text"><?php echo esc_textarea($this->get_option('ai_personality', __('You are a helpful customer service assistant. Be friendly, professional, and concise in your responses.', 'cs-chatbot'))); ?></textarea>
+                            <textarea id="ai_personality" name="ai_personality" rows="4" class="large-text"><?php echo esc_textarea($this->get_option('ai_personality', __('You are a helpful and friendly customer service assistant. Respond naturally and conversationally. Be professional yet approachable, and provide clear, helpful answers to customer questions.', 'cs-chatbot'))); ?></textarea>
+                            <p class="description"><?php _e('Define how the AI should behave and respond to users.', 'cs-chatbot'); ?></p>
                         </td>
                     </tr>
                 </table>
@@ -1103,21 +1101,21 @@ class CSChatbotProfessional {
             wp_die(__('Insufficient permissions', 'cs-chatbot'));
         }
         
-        // Test the SEO-Forge API with a simple request
-        $test_response = $this->generate_seo_forge_response(
-            'Hello, how are you?',
-            1
+        // Test the OpenRouter API with a simple request
+        $test_response = $this->generate_openrouter_response(
+            'Hello! Please respond with a brief greeting to test the API connection.',
+            0
         );
         
         if ($test_response) {
             wp_send_json_success([
-                'message' => __('✅ SEO-Forge API is working correctly!', 'cs-chatbot'),
-                'sample_response' => substr($test_response, 0, 200) . '...',
+                'message' => __('✅ OpenRouter API is working correctly!', 'cs-chatbot'),
+                'sample_response' => substr($test_response, 0, 200) . (strlen($test_response) > 200 ? '...' : ''),
                 'status' => 'success'
             ]);
         } else {
             wp_send_json_error([
-                'message' => __('❌ SEO-Forge API test failed. Check error logs for details.', 'cs-chatbot'),
+                'message' => __('❌ OpenRouter API test failed. Please check your API key and error logs for details.', 'cs-chatbot'),
                 'status' => 'error'
             ]);
         }
@@ -1148,86 +1146,26 @@ class CSChatbotProfessional {
     
     // Core Functions
     private function generate_ai_response($message, $conversation_id = 0) {
-        // Try SEO-Forge API first
-        $seo_forge_response = $this->generate_seo_forge_response($message, $conversation_id);
-        if ($seo_forge_response) {
-            return $seo_forge_response;
-        }
-        
-        // Fallback to OpenAI if SEO-Forge API fails
-        $openai_response = $this->generate_openai_response($message, $conversation_id);
-        if ($openai_response) {
-            return $openai_response;
+        // Try OpenRouter API first
+        $openrouter_response = $this->generate_openrouter_response($message, $conversation_id);
+        if ($openrouter_response) {
+            return $openrouter_response;
         }
         
         // Final fallback to knowledge base or default response
         return $this->generate_fallback_response($message, $conversation_id);
     }
     
-    private function generate_seo_forge_response($message, $conversation_id = 0) {
-        $api_endpoint = 'https://seo-forge.bitebase.app/api/chat/response';
-        
-        // Get conversation context
-        $context = $this->get_conversation_context($conversation_id);
-        
-        $response = wp_remote_post($api_endpoint, [
-            'headers' => [
-                'Content-Type' => 'application/json',
-                'User-Agent' => 'CS-Chatbot-WordPress-Plugin/1.0.0',
-                'Accept' => 'application/json',
-            ],
-            'body' => wp_json_encode([
-                'message' => sanitize_text_field($message),
-                'context' => $context,
-                'personality' => $this->get_option('ai_personality', 'You are a helpful customer service assistant.'),
-                'conversation_id' => $conversation_id,
-                'site_url' => home_url(),
-                'plugin_version' => '1.0.0'
-            ]),
-            'timeout' => 30,
-            'sslverify' => true,
-        ]);
-        
-        if (is_wp_error($response)) {
-            error_log('CS-Chatbot API Error: ' . $response->get_error_message());
-            return false;
-        }
-        
-        $response_code = wp_remote_retrieve_response_code($response);
-        $body = wp_remote_retrieve_body($response);
-        
-        if ($response_code !== 200) {
-            error_log('CS-Chatbot API Response Code: ' . $response_code);
-            return false;
-        }
-        
-        $data = json_decode($body, true);
-        
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log('CS-Chatbot API JSON Error: ' . json_last_error_msg());
-            return false;
-        }
-        
-        if (isset($data['response']) && !empty($data['response'])) {
-            return $data['response'];
-        }
-        
-        if (isset($data['data']['response']) && !empty($data['data']['response'])) {
-            return $data['data']['response'];
-        }
-        
-        return false;
-    }
-    
-    private function generate_openai_response($message, $conversation_id = 0) {
-        $api_key = $this->get_option('openai_api_key', '');
+    private function generate_openrouter_response($message, $conversation_id = 0) {
+        $api_key = $this->get_option('openrouter_api_key', '');
         
         if (empty($api_key)) {
             return false;
         }
         
         $context = $this->get_conversation_context($conversation_id);
-        $personality = $this->get_option('ai_personality', 'You are a helpful customer service assistant.');
+        $personality = $this->get_option('ai_personality', 'You are a helpful and friendly customer service assistant. Respond naturally and conversationally.');
+        $model = $this->get_option('ai_model', 'deepseek/deepseek-r1-0528-qwen3-8b:free');
         
         $messages = [
             ['role' => 'system', 'content' => $personality]
@@ -1242,29 +1180,52 @@ class CSChatbotProfessional {
         // Add current message
         $messages[] = ['role' => 'user', 'content' => $message];
         
-        $response = wp_remote_post('https://api.openai.com/v1/chat/completions', [
+        $response = wp_remote_post('https://openrouter.ai/api/v1/chat/completions', [
             'headers' => [
                 'Authorization' => 'Bearer ' . $api_key,
                 'Content-Type' => 'application/json',
+                'HTTP-Referer' => home_url(),
+                'X-Title' => get_bloginfo('name') . ' - CS Chatbot',
             ],
             'body' => wp_json_encode([
-                'model' => $this->get_option('ai_model', 'gpt-3.5-turbo'),
+                'model' => $model,
                 'messages' => $messages,
-                'max_tokens' => 150,
-                'temperature' => 0.7,
+                'max_tokens' => 300,
+                'temperature' => 0.8,
+                'top_p' => 0.9,
+                'frequency_penalty' => 0.1,
+                'presence_penalty' => 0.1,
             ]),
-            'timeout' => 30,
+            'timeout' => 45,
+            'sslverify' => true,
         ]);
         
         if (is_wp_error($response)) {
+            error_log('CS-Chatbot OpenRouter API Error: ' . $response->get_error_message());
             return false;
         }
         
+        $response_code = wp_remote_retrieve_response_code($response);
         $body = wp_remote_retrieve_body($response);
+        
+        if ($response_code !== 200) {
+            error_log('CS-Chatbot OpenRouter API Response Code: ' . $response_code . ' Body: ' . $body);
+            return false;
+        }
+        
         $data = json_decode($body, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('CS-Chatbot OpenRouter API JSON Error: ' . json_last_error_msg());
+            return false;
+        }
         
         if (isset($data['choices'][0]['message']['content'])) {
             return trim($data['choices'][0]['message']['content']);
+        }
+        
+        if (isset($data['error'])) {
+            error_log('CS-Chatbot OpenRouter API Error: ' . wp_json_encode($data['error']));
         }
         
         return false;
@@ -1479,7 +1440,7 @@ class CSChatbotProfessional {
                     $sanitized_settings[$key] = sanitize_textarea_field($value);
                     break;
                     
-                case 'openai_api_key':
+                case 'openrouter_api_key':
                     $sanitized_settings[$key] = sanitize_text_field($value);
                     break;
                     

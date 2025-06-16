@@ -5,9 +5,10 @@ A comprehensive WordPress chatbot plugin with AI-powered customer service, live 
 ## 🚀 Features
 
 ### 🤖 **AI-Powered Chatbot**
-- **Primary API**: SEO-Forge API (https://seo-forge.bitebase.app) - No API key required
-- **Fallback API**: OpenAI (optional, requires API key)
-- **Smart Responses**: Context-aware conversations
+- **Primary API**: OpenRouter (https://openrouter.ai) - Supports multiple AI models
+- **Default Model**: DeepSeek R1 Qwen3 8B (Free tier available)
+- **Multiple Models**: GPT-3.5, GPT-4o Mini, Claude 3 Haiku, Llama 3.2, Phi-3 Mini
+- **Smart Responses**: Context-aware conversations with natural language processing
 - **Knowledge Base**: Custom Q&A management
 - **Multi-language Support**: Internationalization ready
 
@@ -79,9 +80,9 @@ git clone https://github.com/your-repo/cs-chatbot-professional.git
    - Choose widget position and theme
 
 ### **AI Configuration**
-- **SEO-Forge API**: Enabled by default (no setup required)
-- **OpenAI API**: Optional fallback (add API key in settings)
-- **AI Personality**: Customize bot behavior and responses
+- **OpenRouter API**: Add your API key from https://openrouter.ai
+- **Model Selection**: Choose from free and paid AI models
+- **AI Personality**: Customize bot behavior and responses for natural conversations
 
 ### **Live Chat Setup**
 1. Enable live chat in settings
@@ -117,17 +118,15 @@ git clone https://github.com/your-repo/cs-chatbot-professional.git
 
 ## 🔌 **API Integration**
 
-### **SEO-Forge API**
-- **Endpoint**: https://seo-forge.bitebase.app/api/chat/response
-- **Authentication**: None required
-- **Rate Limits**: Generous limits for testing
-- **Response Format**: JSON with conversation context
-
-### **OpenAI Integration**
-- **Models Supported**: GPT-3.5-turbo, GPT-4
-- **Configuration**: API key required
-- **Fallback**: Automatic when SEO-Forge API unavailable
-- **Cost**: Based on OpenAI pricing
+### **OpenRouter Integration**
+- **Endpoint**: https://openrouter.ai/api/v1/chat/completions
+- **Authentication**: API key required (get one at https://openrouter.ai)
+- **Models Supported**: 
+  - **Free Models**: DeepSeek R1 Qwen3 8B, Llama 3.2 3B, Phi-3 Mini
+  - **Paid Models**: GPT-3.5 Turbo, GPT-4o Mini, Claude 3 Haiku
+- **Response Format**: OpenAI-compatible JSON with conversation context
+- **Rate Limits**: Varies by model (free models have generous limits)
+- **Cost**: Free models available, paid models based on OpenRouter pricing
 
 ## 📊 **Analytics Features**
 
@@ -287,7 +286,8 @@ the Free Software Foundation; either version 2 of the License, or
 
 ## 🙏 **Credits**
 
-- **SEO-Forge API**: Content generation service
+- **OpenRouter**: AI model routing and API service
+- **DeepSeek**: Advanced AI model for natural language processing
 - **Chart.js**: Analytics visualization
 - **WordPress**: Platform and UI components
 - **Contributors**: Community developers

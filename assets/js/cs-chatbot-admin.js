@@ -60,7 +60,7 @@
             
             // Settings
             $(document).on('submit', '#cs-chatbot-settings-form', this.saveSettings.bind(this));
-            $(document).on('click', '#test-seo-forge-api', this.testAPI.bind(this));
+            $(document).on('click', '#test-openrouter-api', this.testAPI.bind(this));
             
             // Auto-refresh for live features
             this.startAutoRefresh();
@@ -855,11 +855,11 @@
         }
 
         testAPI() {
-            const $button = $('#test-seo-forge-api');
+            const $button = $('#test-openrouter-api');
             const $result = $('#api-test-result');
             
             $button.prop('disabled', true).text('Testing...');
-            $result.html('<div class="notice notice-info"><p>Testing SEO-Forge API connection...</p></div>');
+            $result.html('<div class="notice notice-info"><p>Testing OpenRouter API connection...</p></div>');
             
             const data = {
                 action: 'cs_chatbot_test_api',
