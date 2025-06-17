@@ -27,19 +27,26 @@ A comprehensive WordPress chatbot plugin with AI-powered customer service, live 
 - **Export Reports**: CSV export functionality
 - **Real-time Dashboard**: Live statistics
 
-### 🎨 **Customizable Widget**
-- **Multiple Themes**: Modern, Classic, Minimal, Dark
-- **Position Control**: All corners of the screen
-- **Size Options**: Small, Medium, Large
-- **Color Customization**: Brand color integration
-- **Mobile Responsive**: Optimized for all devices
+### 🎨 **Enhanced Customizable Widget**
+- **7 Modern Themes**: Modern, Dark, Minimal, Classic, Gradient, Neon, Professional
+- **Live Theme Switching**: Change themes on-the-fly with keyboard shortcuts
+- **Position Control**: All corners of the screen with smart positioning
+- **Size Options**: Small, Medium, Large with responsive breakpoints
+- **Color Customization**: Brand color integration with CSS variables
+- **Mobile Responsive**: Optimized for all devices with touch-friendly controls
 
-### 🔧 **Advanced Features**
+### 🔧 **Enhanced Advanced Features**
+- **Voice Input**: Speech recognition in multiple languages (English/Thai)
+- **Smart Suggestions**: Contextual quick questions and responses
+- **Message Rating**: Like/dislike system with feedback collection
+- **Theme Toggle**: Live theme switching with visual transitions
+- **Keyboard Shortcuts**: Ctrl+Enter to send, Escape to close, Ctrl+Shift+C to toggle
+- **Copy to Clipboard**: One-click message copying with toast notifications
 - **Auto-open Chat**: Configurable delay settings
-- **Typing Indicators**: Enhanced user experience
+- **Enhanced Typing Indicators**: Animated dots with realistic timing
 - **Sound Notifications**: Audio alerts for new messages
-- **Conversation History**: Complete chat logs
-- **Knowledge Base Search**: Instant answer lookup
+- **Conversation History**: Complete chat logs with timestamps
+- **Knowledge Base Search**: Instant answer lookup with relevance scoring
 
 ### 🌐 **Multilingual Support**
 - **Thai/English**: Native support for both languages
@@ -150,7 +157,7 @@ git clone https://github.com/your-repo/cs-chatbot-professional.git
 - Update knowledge base regularly
 - Monitor performance metrics
 
-## 🔌 **API Integration**
+## 🔌 **Enhanced API Integration**
 
 ### **OpenRouter Integration**
 - **Endpoint**: https://openrouter.ai/api/v1/chat/completions
@@ -158,9 +165,19 @@ git clone https://github.com/your-repo/cs-chatbot-professional.git
 - **Models Supported**: 
   - **Free Models**: DeepSeek R1 Qwen3 8B, Llama 3.2 3B, Phi-3 Mini
   - **Paid Models**: GPT-3.5 Turbo, GPT-4o Mini, Claude 3 Haiku
+- **Enhanced Context**: Conversation history, knowledge base integration, language-aware prompts
 - **Response Format**: OpenAI-compatible JSON with conversation context
 - **Rate Limits**: Varies by model (free models have generous limits)
 - **Cost**: Free models available, paid models based on OpenRouter pricing
+
+### **REST API Endpoints (/chatbot Pattern)**
+- **POST** `/wp-json/chatbot/v1/chat` - Enhanced chat endpoint with language support
+- **GET** `/wp-json/chatbot/v1/status` - Chatbot status and capabilities
+- **POST** `/wp-json/chatbot/v1/feedback` - Submit user feedback and ratings
+- **GET** `/wp-json/chatbot/v1/themes` - Available themes with previews
+- **CORS Enabled**: Cross-origin requests supported
+- **Input Validation**: Comprehensive parameter validation and sanitization
+- **Error Handling**: Detailed error responses with proper HTTP status codes
 
 ## 📊 **Analytics Features**
 
