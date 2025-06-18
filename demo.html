@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS Chatbot Professional - Enhanced Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .hero {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 40px 0;
+        }
+        
+        .feature {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .feature:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        .feature h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .feature p {
+            color: #666;
+            line-height: 1.6;
+        }
+        
+        .cta {
+            margin-top: 40px;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .api-demo {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 40px;
+            text-align: left;
+        }
+        
+        .api-demo h3 {
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .api-endpoint {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+        }
+        
+        .theme-showcase {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 30px 0;
+        }
+        
+        .theme-preview {
+            width: 120px;
+            height: 80px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+        }
+        
+        .theme-preview:hover {
+            transform: scale(1.05);
+            border-color: #667eea;
+        }
+        
+        .theme-modern { background: linear-gradient(135deg, #007cba, #005a87); }
+        .theme-dark { background: linear-gradient(135deg, #2d3748, #1a202c); }
+        .theme-minimal { background: linear-gradient(135deg, #f8f9fa, #e9ecef); }
+        .theme-gradient { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .theme-neon { background: linear-gradient(135deg, #0a0a0a, #003d1f); }
+        .theme-professional { background: linear-gradient(135deg, #2c3e50, #34495e); }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <div class="hero">
+            <h1>CS Chatbot Professional</h1>
+            <p class="subtitle">
+                Enhanced AI-powered chatbot with modern themes, voice input, smart suggestions, 
+                and comprehensive REST API following the <code>/chatbot</code> pattern.
+            </p>
+            
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <h3>7 Modern Themes</h3>
+                    <p>Choose from Modern, Dark, Minimal, Classic, Gradient, Neon, and Professional themes with smooth animations.</p>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">🎤</div>
+                    <h3>Voice Input</h3>
+                    <p>Speak to the chatbot using built-in speech recognition in multiple languages.</p>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">💡</div>
+                    <h3>Smart Suggestions</h3>
+                    <p>Intelligent quick questions and contextual suggestions to improve user experience.</p>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">⭐</div>
+                    <h3>Feedback System</h3>
+                    <p>Built-in rating system with message-level feedback and conversation analytics.</p>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">🌐</div>
+                    <h3>REST API</h3>
+                    <p>Comprehensive API endpoints following <code>/chatbot/v1/</code> pattern for easy integration.</p>
+                </div>
+                
+                <div class="feature">
+                    <div class="feature-icon">📱</div>
+                    <h3>Mobile Responsive</h3>
+                    <p>Optimized for all devices with touch-friendly controls and adaptive layouts.</p>
+                </div>
+            </div>
+            
+            <div class="theme-showcase">
+                <div class="theme-preview theme-modern" title="Modern Theme"></div>
+                <div class="theme-preview theme-dark" title="Dark Theme"></div>
+                <div class="theme-preview theme-minimal" title="Minimal Theme"></div>
+                <div class="theme-preview theme-gradient" title="Gradient Theme"></div>
+                <div class="theme-preview theme-neon" title="Neon Theme"></div>
+                <div class="theme-preview theme-professional" title="Professional Theme"></div>
+            </div>
+            
+            <div class="cta">
+                <a href="#" class="btn" onclick="openChatbot()">Try the Chatbot</a>
+                <a href="https://github.com/khiwniti/cs-chatbot-professional" class="btn">View on GitHub</a>
+            </div>
+        </div>
+        
+        <div class="api-demo">
+            <h3>🔌 Enhanced REST API Endpoints</h3>
+            <div class="api-endpoint">POST /wp-json/chatbot/v1/chat</div>
+            <div class="api-endpoint">GET /wp-json/chatbot/v1/status</div>
+            <div class="api-endpoint">POST /wp-json/chatbot/v1/feedback</div>
+            <div class="api-endpoint">GET /wp-json/chatbot/v1/themes</div>
+            
+            <p style="color: rgba(255,255,255,0.8); margin-top: 20px;">
+                All endpoints support CORS and include comprehensive error handling, 
+                input validation, and detailed response formatting.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function openChatbot() {
+            alert('Chatbot integration would be active in a WordPress environment!\n\nFeatures include:\n• Voice input with speech recognition\n• Theme switching\n• Smart suggestions\n• Message rating\n• Keyboard shortcuts\n• Enhanced animations');
+        }
+        
+        // Add some interactive effects
+        document.querySelectorAll('.theme-preview').forEach(preview => {
+            preview.addEventListener('click', function() {
+                const theme = this.className.split(' ')[1].replace('theme-', '');
+                alert(`Selected ${theme.charAt(0).toUpperCase() + theme.slice(1)} theme!\n\nThis theme features:\n• Unique color scheme\n• Custom animations\n• Optimized readability\n• Mobile responsive design`);
+            });
+        });
+        
+        // Add floating animation to features
+        document.querySelectorAll('.feature').forEach((feature, index) => {
+            feature.style.animationDelay = `${index * 0.1}s`;
+            feature.style.animation = 'fadeInUp 0.6s ease forwards';
+        });
+        
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

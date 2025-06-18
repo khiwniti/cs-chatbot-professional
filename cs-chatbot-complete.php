@@ -1829,6 +1829,7 @@ class CSChatbotProfessional {
     
     // REST API
     public function register_rest_routes() {
+        // Original API routes
         register_rest_route('cs-chatbot/v1', '/message', [
             'methods' => 'POST',
             'callback' => [$this, 'rest_send_message'],
@@ -1839,6 +1840,71 @@ class CSChatbotProfessional {
             'methods' => 'GET',
             'callback' => [$this, 'rest_get_conversations'],
             'permission_callback' => [$this, 'rest_permission_check']
+        ]);
+
+        // Enhanced API routes following /chatbot pattern
+        register_rest_route('chatbot/v1', '/chat', [
+            'methods' => 'POST',
+            'callback' => [$this, 'rest_chat_endpoint'],
+            'permission_callback' => '__return_true',
+            'args' => [
+                'message' => [
+                    'required' => true,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ],
+                'conversation_id' => [
+                    'required' => false,
+                    'type' => 'integer',
+                    'default' => 0
+                ],
+                'visitor_id' => [
+                    'required' => false,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_text_field'
+                ],
+                'language' => [
+                    'required' => false,
+                    'type' => 'string',
+                    'default' => 'en',
+                    'enum' => ['en', 'th']
+                ]
+            ]
+        ]);
+
+        register_rest_route('chatbot/v1', '/status', [
+            'methods' => 'GET',
+            'callback' => [$this, 'rest_chatbot_status'],
+            'permission_callback' => '__return_true'
+        ]);
+
+        register_rest_route('chatbot/v1', '/feedback', [
+            'methods' => 'POST',
+            'callback' => [$this, 'rest_submit_feedback'],
+            'permission_callback' => '__return_true',
+            'args' => [
+                'conversation_id' => [
+                    'required' => true,
+                    'type' => 'integer'
+                ],
+                'rating' => [
+                    'required' => true,
+                    'type' => 'integer',
+                    'minimum' => 1,
+                    'maximum' => 5
+                ],
+                'feedback' => [
+                    'required' => false,
+                    'type' => 'string',
+                    'sanitize_callback' => 'sanitize_textarea_field'
+                ]
+            ]
+        ]);
+
+        register_rest_route('chatbot/v1', '/themes', [
+            'methods' => 'GET',
+            'callback' => [$this, 'rest_get_themes'],
+            'permission_callback' => '__return_true'
         ]);
     }
     
@@ -1881,6 +1947,337 @@ class CSChatbotProfessional {
     
     public function rest_permission_check() {
         return current_user_can('manage_options');
+    }
+
+    // Enhanced REST API endpoints following /chatbot pattern
+    public function rest_chat_endpoint($request) {
+        $message = $request->get_param('message');
+        $conversation_id = $request->get_param('conversation_id') ?: 0;
+        $visitor_id = $request->get_param('visitor_id') ?: $this->generate_visitor_id();
+        $language = $request->get_param('language') ?: 'en';
+
+        // Set current language for this request
+        $this->current_language = $language;
+
+        if (empty($message)) {
+            return new WP_Error('empty_message', __('Message cannot be empty', 'cs-chatbot'), ['status' => 400]);
+        }
+
+        // Save user message
+        $conversation_id = $this->save_message($conversation_id, $visitor_id, $message, 'user');
+
+        // Generate AI response with enhanced context
+        $ai_response = $this->generate_enhanced_ai_response($message, $conversation_id, $language);
+
+        // Save AI response
+        $this->save_message($conversation_id, $visitor_id, $ai_response, 'bot');
+
+        // Get conversation context for better responses
+        $conversation_context = $this->get_conversation_context($conversation_id);
+
+        return rest_ensure_response([
+            'success' => true,
+            'data' => [
+                'response' => $ai_response,
+                'conversation_id' => $conversation_id,
+                'visitor_id' => $visitor_id,
+                'language' => $language,
+                'timestamp' => current_time('c'),
+                'context' => $conversation_context
+            ]
+        ]);
+    }
+
+    public function rest_chatbot_status($request) {
+        $settings = $this->options;
+        
+        return rest_ensure_response([
+            'success' => true,
+            'data' => [
+                'status' => 'online',
+                'enabled' => !empty($settings['enabled']),
+                'live_chat_available' => !empty($settings['enable_live_chat']),
+                'office_hours' => $this->is_office_hours(),
+                'available_languages' => ['en', 'th'],
+                'current_language' => $this->current_language,
+                'features' => [
+                    'voice_input' => true,
+                    'file_upload' => false,
+                    'typing_indicator' => true,
+                    'message_rating' => true,
+                    'theme_switching' => true
+                ],
+                'themes' => $this->get_available_themes(),
+                'version' => CS_CHATBOT_VERSION
+            ]
+        ]);
+    }
+
+    public function rest_submit_feedback($request) {
+        $conversation_id = $request->get_param('conversation_id');
+        $rating = $request->get_param('rating');
+        $feedback = $request->get_param('feedback');
+        $visitor_id = $request->get_param('visitor_id');
+
+        global $wpdb;
+        $feedback_table = $wpdb->prefix . 'cs_chatbot_feedback';
+
+        $result = $wpdb->insert(
+            $feedback_table,
+            [
+                'conversation_id' => $conversation_id,
+                'visitor_id' => $visitor_id,
+                'rating' => $rating,
+                'feedback' => $feedback,
+                'created_at' => current_time('mysql')
+            ],
+            ['%d', '%s', '%d', '%s', '%s']
+        );
+
+        if ($result === false) {
+            return new WP_Error('feedback_error', __('Failed to save feedback', 'cs-chatbot'), ['status' => 500]);
+        }
+
+        return rest_ensure_response([
+            'success' => true,
+            'message' => __('Thank you for your feedback!', 'cs-chatbot')
+        ]);
+    }
+
+    public function rest_get_themes($request) {
+        return rest_ensure_response([
+            'success' => true,
+            'data' => $this->get_available_themes()
+        ]);
+    }
+
+    private function get_available_themes() {
+        return [
+            'modern' => [
+                'name' => __('Modern', 'cs-chatbot'),
+                'description' => __('Clean, contemporary design with smooth animations', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-modern.png'
+            ],
+            'dark' => [
+                'name' => __('Dark', 'cs-chatbot'),
+                'description' => __('Dark theme perfect for modern websites', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-dark.png'
+            ],
+            'minimal' => [
+                'name' => __('Minimal', 'cs-chatbot'),
+                'description' => __('Simple, lightweight appearance', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-minimal.png'
+            ],
+            'classic' => [
+                'name' => __('Classic', 'cs-chatbot'),
+                'description' => __('Traditional chat interface', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-classic.png'
+            ],
+            'gradient' => [
+                'name' => __('Gradient', 'cs-chatbot'),
+                'description' => __('Beautiful gradient background with glass effect', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-gradient.png'
+            ],
+            'neon' => [
+                'name' => __('Neon', 'cs-chatbot'),
+                'description' => __('Futuristic neon theme with glowing effects', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-neon.png'
+            ],
+            'professional' => [
+                'name' => __('Professional', 'cs-chatbot'),
+                'description' => __('Business-focused design for corporate websites', 'cs-chatbot'),
+                'preview' => CS_CHATBOT_URL . 'assets/images/theme-professional.png'
+            ]
+        ];
+    }
+
+    private function generate_enhanced_ai_response($message, $conversation_id, $language = 'en') {
+        // Get conversation context
+        $context = $this->get_conversation_context($conversation_id, 5);
+        
+        // Search knowledge base first
+        $kb_response = $this->search_knowledge_base($message, $language);
+        
+        // Try OpenRouter API with enhanced context
+        $openrouter_response = $this->generate_openrouter_response_enhanced($message, $conversation_id, $kb_response, $context, $language);
+        if ($openrouter_response) {
+            return $openrouter_response;
+        }
+
+        // Fallback to knowledge base or default response
+        if ($kb_response) {
+            return $kb_response;
+        }
+
+        // Language-specific default responses
+        $default_responses = [
+            'en' => "I'm here to help! Could you please provide more details about what you're looking for?",
+            'th' => "ฉันพร้อมช่วยเหลือคุณ! คุณช่วยให้รายละเอียดเพิ่มเติมเกี่ยวกับสิ่งที่คุณต้องการได้ไหม?"
+        ];
+
+        return $default_responses[$language] ?? $default_responses['en'];
+    }
+
+    private function get_conversation_context($conversation_id, $limit = 10) {
+        global $wpdb;
+        $messages_table = $wpdb->prefix . 'cs_chatbot_messages';
+
+        $messages = $wpdb->get_results($wpdb->prepare(
+            "SELECT message, sender, created_at FROM $messages_table 
+             WHERE conversation_id = %d 
+             ORDER BY created_at DESC 
+             LIMIT %d",
+            $conversation_id,
+            $limit
+        ));
+
+        return array_reverse($messages);
+    }
+
+    private function generate_openrouter_response_enhanced($message, $conversation_id, $kb_context, $conversation_context, $language) {
+        $api_key = $this->get_option('openrouter_api_key', '');
+        if (empty($api_key)) {
+            return false;
+        }
+
+        // Build enhanced context
+        $system_prompt = $this->build_enhanced_system_prompt($language, $kb_context, $conversation_context);
+        
+        $messages = [
+            [
+                'role' => 'system',
+                'content' => $system_prompt
+            ]
+        ];
+
+        // Add conversation history
+        foreach ($conversation_context as $msg) {
+            $role = $msg->sender === 'user' ? 'user' : 'assistant';
+            $messages[] = [
+                'role' => $role,
+                'content' => $msg->message
+            ];
+        }
+
+        // Add current message
+        $messages[] = [
+            'role' => 'user',
+            'content' => $message
+        ];
+
+        $data = [
+            'model' => $this->get_option('openrouter_model', 'deepseek/deepseek-r1-qwen3-8b'),
+            'messages' => $messages,
+            'max_tokens' => 500,
+            'temperature' => 0.7,
+            'top_p' => 0.9
+        ];
+
+        $response = wp_remote_post('https://openrouter.ai/api/v1/chat/completions', [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $api_key,
+                'Content-Type' => 'application/json',
+                'HTTP-Referer' => home_url(),
+                'X-Title' => get_bloginfo('name')
+            ],
+            'body' => wp_json_encode($data),
+            'timeout' => 30
+        ]);
+
+        if (is_wp_error($response)) {
+            error_log('CS-Chatbot OpenRouter API Error: ' . $response->get_error_message());
+            return false;
+        }
+
+        $response_code = wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+
+        if ($response_code !== 200) {
+            error_log('CS-Chatbot OpenRouter API Response Code: ' . $response_code . ' Body: ' . $body);
+            return false;
+        }
+
+        $data = json_decode($body, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('CS-Chatbot OpenRouter API JSON Error: ' . json_last_error_msg());
+            return false;
+        }
+
+        if (isset($data['error'])) {
+            error_log('CS-Chatbot OpenRouter API Error: ' . wp_json_encode($data['error']));
+            return false;
+        }
+
+        return $data['choices'][0]['message']['content'] ?? false;
+    }
+
+    private function build_enhanced_system_prompt($language, $kb_context, $conversation_context) {
+        $site_name = get_bloginfo('name');
+        $site_description = get_bloginfo('description');
+        
+        $prompts = [
+            'en' => "You are a helpful AI assistant for {$site_name}. {$site_description}
+
+Your role:
+- Provide accurate, helpful information about our services
+- Be friendly, professional, and conversational
+- Keep responses concise but informative
+- If you don't know something, admit it and offer to connect them with a human agent
+
+Knowledge Base Context:
+{$kb_context}
+
+Guidelines:
+- Always respond in English
+- Use a warm, professional tone
+- Provide actionable advice when possible
+- Ask clarifying questions if needed",
+
+            'th' => "คุณเป็นผู้ช่วย AI ที่เป็นประโยชน์สำหรับ {$site_name} {$site_description}
+
+บทบาทของคุณ:
+- ให้ข้อมูลที่ถูกต้องและเป็นประโยชน์เกี่ยวกับบริการของเรา
+- เป็นมิตร เป็นมืออาชีพ และสนทนาได้
+- ตอบสั้นๆ แต่ให้ข้อมูลครบถ้วน
+- หากไม่ทราบข้อมูล ให้ยอมรับและเสนอให้ติดต่อเจ้าหน้าที่
+
+บริบทฐานความรู้:
+{$kb_context}
+
+แนวทาง:
+- ตอบเป็นภาษาไทยเสมอ
+- ใช้น้ำเสียงที่อบอุ่นและเป็นมืออาชีพ
+- ให้คำแนะนำที่สามารถปฏิบัติได้เมื่อเป็นไปได้
+- ถามคำถามเพื่อขอความชัดเจนหากจำเป็น"
+        ];
+
+        return $prompts[$language] ?? $prompts['en'];
+    }
+
+    private function generate_visitor_id() {
+        return 'visitor_' . time() . '_' . wp_rand(1000, 9999);
+    }
+
+    private function is_office_hours() {
+        $office_hours = $this->get_option('office_hours', []);
+        if (empty($office_hours)) {
+            return true; // Always available if no office hours set
+        }
+
+        $current_time = current_time('H:i');
+        $current_day = current_time('w'); // 0 = Sunday, 6 = Saturday
+
+        $day_names = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        $today = $day_names[$current_day];
+
+        if (!isset($office_hours[$today]) || !$office_hours[$today]['enabled']) {
+            return false;
+        }
+
+        $start_time = $office_hours[$today]['start'];
+        $end_time = $office_hours[$today]['end'];
+
+        return ($current_time >= $start_time && $current_time <= $end_time);
     }
     
     // Cron Jobs
