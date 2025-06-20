@@ -1,0 +1,179 @@
+/* Chatbot Widget Styles */
+.simple-chatbot {
+    font-family: Arial, sans-serif;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    width: 350px;
+    /* max-width: 100%; */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Ensures child elements adhere to border-radius */
+    background-color: #f9f9f9;
+}
+
+.chatbot-header {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 15px;
+    border-bottom: 1px solid #0056b3;
+    text-align: center;
+}
+
+.chatbot-header h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.chatbot-messages {
+    flex-grow: 1;
+    padding: 15px;
+    overflow-y: auto;
+    max-height: 300px; /* Or any height you prefer */
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 10px; /* Space between messages */
+}
+
+.message {
+    padding: 8px 12px;
+    border-radius: 18px; /* More rounded bubbles */
+    max-width: 80%;
+    word-wrap: break-word; /* Ensures long words don't overflow */
+}
+
+.user-message {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 5px; /* Slightly different shape */
+}
+
+.ai-message {
+    background-color: #e9ecef;
+    color: #333;
+    align-self: flex-start;
+    border-bottom-left-radius: 5px; /* Slightly different shape */
+}
+
+/* Markdown content styling (basic) */
+.ai-message p {
+    margin: 0.5em 0;
+}
+.ai-message ul, .ai-message ol {
+    margin: 0.5em 0;
+    padding-left: 1.5em;
+}
+.ai-message code {
+    background-color: #f0f0f0;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+.ai-message pre {
+    background-color: #f0f0f0;
+    padding: 0.5em;
+    border-radius: 4px;
+    overflow-x: auto; /* Allow horizontal scrolling for code blocks */
+}
+.ai-message pre code {
+    background-color: transparent; /* Avoid double background */
+    padding: 0;
+}
+.ai-message a {
+    color: #007bff;
+    text-decoration: underline;
+}
+
+
+.chatbot-input-form {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+    background-color: #f0f0f0;
+}
+
+.chatbot-input-form input[type="text"] {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px; /* Rounded input field */
+    margin-right: 8px;
+    font-size: 0.95em;
+}
+
+.chatbot-input-form button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px; /* Rounded button */
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease;
+}
+
+.chatbot-input-form button:hover {
+    background-color: #0056b3;
+}
+
+.chatbot-input-form button:disabled {
+    background-color: #a0a0a0;
+    cursor: not-allowed;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    padding: 5px 15px; /* Reduced padding */
+    font-style: italic;
+    color: #666;
+}
+
+.typing-indicator span {
+    height: 8px;
+    width: 8px;
+    margin: 0 2px;
+    background-color: #007bff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.typing-indicator span:nth-child(3) { /* animation-delay: 0s; */ }
+
+.error-message {
+    padding: 10px 15px;
+    background-color: #ffebee; /* Light red */
+    color: #c62828; /* Darker red for text */
+    border: 1px solid #ef9a9a; /* Lighter red border */
+    border-radius: 4px;
+    margin: 10px 15px; /* Add some margin */
+    text-align: center;
+    font-size: 0.9em;
+}
+
+.prompt-button {
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    border-radius: 15px;
+    cursor: pointer;
+    display: block; /* Make it block to take full width if needed, or inline-block */
+    margin: 5px 0; /* Spacing if multiple prompts */
+    text-align: left;
+    transition: background-color 0.2s ease;
+}
+
+.prompt-button:hover {
+    background-color: #e0e0e0;
+}
+
+
+@keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1.0); }
+}

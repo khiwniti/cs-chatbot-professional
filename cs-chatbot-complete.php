@@ -218,48 +218,43 @@ class CSChatbotProfessional {
         
         wp_enqueue_script('jquery');
         
-        wp_enqueue_script(
-            'cs-chatbot-frontend',
-            CS_CHATBOT_URL . 'assets/js/cs-chatbot-frontend.js',
-            ['jquery'],
-            CS_CHATBOT_VERSION,
-            true
-        );
-        
-        wp_enqueue_style(
-            'cs-chatbot-frontend',
-            CS_CHATBOT_URL . 'assets/css/cs-chatbot-frontend.css',
-            [],
-            CS_CHATBOT_VERSION
-        );
-        
-        wp_localize_script('cs-chatbot-frontend', 'csChatbotFrontend', [
+        // wp_enqueue_script(
+        //     'cs-chatbot-frontend',
+        //     CS_CHATBOT_URL . 'assets/js/cs-chatbot-frontend.js',
+        //     ['jquery'],
+        //     CS_CHATBOT_VERSION,
+        //     true
+        // );
+        //
+        // wp_enqueue_style(
+        //     'cs-chatbot-frontend',
+        //     CS_CHATBOT_URL . 'assets/css/cs-chatbot-frontend.css',
+        //     [],
+        //     CS_CHATBOT_VERSION
+        // );
+
+        // Placeholder for React app's main JS
+        // wp_enqueue_script('react-app-main-js', CS_CHATBOT_URL . 'assets/react-chatbot-frontend/build/static/js/main.XXXX.js', [], CS_CHATBOT_VERSION, true);
+        // Placeholder for React app's main CSS
+        // wp_enqueue_style('react-app-main-css', CS_CHATBOT_URL . 'assets/react-chatbot-frontend/build/static/css/main.YYYY.css', [], CS_CHATBOT_VERSION);
+
+        $localized_data = [
             'ajaxurl' => admin_url('admin-ajax.php'),
-            'nonce' => wp_create_nonce('cs_chatbot_nonce'),
+            'nonce' => wp_create_nonce('cs_chatbot_react_nonce'), // A new nonce for React app
+            'rest_url' => rest_url('cs-chatbot/v1/'), // REST API base
             'settings' => [
-                'position' => $this->get_option('widget_position', 'bottom-right'),
-                'theme' => $this->get_option('widget_theme', 'modern'),
-                'welcome_message' => $this->get_option('welcome_message', __('Hello! How can I help you today?', 'cs-chatbot')),
+                'default_language' => $this->current_language, // Already detected by the plugin
+                'welcome_message_en' => $this->get_option('welcome_message', 'Hello! How can I help you today?'),
                 'welcome_message_th' => $this->get_option('welcome_message_th', 'สวัสดีครับ/ค่ะ! มีอะไรให้ช่วยเหลือไหมครับ/ค่ะ?'),
-                'placeholder' => $this->get_option('input_placeholder', __('Type your message...', 'cs-chatbot')),
-                'typing_indicator' => $this->get_option('show_typing_indicator', true),
-                'sound_enabled' => $this->get_option('enable_sound', true),
-                'auto_open' => $this->get_option('auto_open_chat', false),
-                'auto_open_delay' => $this->get_option('auto_open_delay', 5000),
-                'default_language' => $this->get_option('default_language', 'en'),
-                'auto_detect_language' => $this->get_option('auto_detect_language', true),
-                'primary_color' => $this->get_option('primary_color', '#007cba')
+                // Add any other settings the React app might need from csChatbotFrontend.settings
             ],
-            'strings' => [
-                'send' => __('Send', 'cs-chatbot'),
-                'minimize' => __('Minimize', 'cs-chatbot'),
-                'close' => __('Close', 'cs-chatbot'),
-                'typing' => __('Bot is typing...', 'cs-chatbot'),
-                'error' => __('Sorry, something went wrong. Please try again.', 'cs-chatbot'),
-                'offline' => __('We are currently offline. Please leave a message.', 'cs-chatbot'),
-                'live_agent' => __('Connect to live agent', 'cs-chatbot')
+            'strings' => [ // Pass strings similar to csChatbotFrontend.strings if needed by React app for consistency
+                'error' => $this->get_option('ajax_error_message', __('Sorry, I encountered an error. Please try again.', 'cs-chatbot')), // Example, ensure this option exists or use existing string
+                'loading' => __('Loading...', 'cs-chatbot'), // From existing admin localization
             ]
-        ]);
+        ];
+        // The script handle 'react-app-main-js' must match the handle of the React app's main JS file.
+        wp_localize_script('react-app-main-js', 'csReactChatbotData', $localized_data);
     }
     
     // Admin Page
@@ -1086,102 +1081,148 @@ class CSChatbotProfessional {
         }
     }
     
+    // Add this method to CSChatbotProfessional class
+    private function get_visitor_id_php() {
+        $cookie_name = 'cs_chatbot_visitor_id';
+        if (isset($_COOKIE[$cookie_name]) && !empty($_COOKIE[$cookie_name])) {
+            return sanitize_text_field($_COOKIE[$cookie_name]);
+        }
+
+        // Generate a new visitor ID
+        // Similar to the JS version: 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        // PHP equivalent:
+        $visitor_id = 'visitor_' . time() . '_' . substr(bin2hex(random_bytes(16)), 0, 9);
+
+        // Set the cookie for 1 year
+        // Note: setcookie should ideally be called before any output.
+        // If this function is called late, it might not work.
+        // Consider alternative ways to manage visitor_id robustly on the backend if not sent by client.
+        // For now, this is a basic implementation.
+        // setcookie($cookie_name, $visitor_id, time() + (86400 * 30 * 12), COOKIEPATH, COOKIE_DOMAIN); // 1 year
+        // $_COOKIE[$cookie_name] = $visitor_id; // Make it available immediately for this request
+
+        // For a stateless approach if cookies are problematic mid-request:
+        // Just generate if not passed, but it won't persist across requests unless React handles it.
+        // The original ajax_send_message relies on visitor_id being passed from the client.
+        return $visitor_id;
+    }
+
     // Frontend Widget
     public function render_chatbot_widget() {
         if (!$this->get_option('enable_chatbot', true)) {
             return;
         }
         
-        $position = $this->get_option('widget_position', 'bottom-right');
-        $theme = $this->get_option('widget_theme', 'modern');
-        $size = $this->get_option('widget_size', 'medium');
+        // $position = $this->get_option('widget_position', 'bottom-right');
+        // $theme = $this->get_option('widget_theme', 'modern');
+        // $size = $this->get_option('widget_size', 'medium');
         
-        ?>
-        <div id="cs-chatbot-widget" class="cs-chatbot-widget position-<?php echo esc_attr($position); ?> theme-<?php echo esc_attr($theme); ?> size-<?php echo esc_attr($size); ?>" style="display: none;">
-            <div class="chatbot-toggle" id="chatbot-toggle">
-                <div class="toggle-icon">💬</div>
-                <div class="notification-badge" id="notification-badge" style="display: none;">1</div>
-            </div>
-            
-            <div class="chatbot-window" id="chatbot-window" style="display: none;">
-                <div class="chatbot-header">
-                    <div class="header-info">
-                        <div class="bot-avatar">🤖</div>
-                        <div class="bot-details">
-                            <div class="bot-name"><?php echo esc_html($this->get_option('chatbot_name', 'Assistant')); ?></div>
-                            <div class="bot-status"><?php _e('Online', 'cs-chatbot'); ?></div>
-                        </div>
-                    </div>
-                    <div class="header-actions">
-                        <button class="minimize-btn" id="minimize-chat">−</button>
-                        <button class="close-btn" id="close-chat">×</button>
-                    </div>
-                </div>
-                
-                <div class="chatbot-messages" id="chatbot-messages">
-                    <div class="message bot-message">
-                        <div class="message-avatar">🤖</div>
-                        <div class="message-content">
-                            <div class="message-text"><?php echo esc_html($this->get_option('welcome_message', __('Hello! How can I help you today?', 'cs-chatbot'))); ?></div>
-                            <div class="message-time"><?php echo current_time('H:i'); ?></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="typing-indicator" id="typing-indicator" style="display: none;">
-                    <div class="typing-dots">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                    </div>
-                    <span class="typing-text"><?php _e('Bot is typing...', 'cs-chatbot'); ?></span>
-                </div>
-                
-                <div class="chatbot-input">
-                    <div class="quick-actions" id="quick-actions">
-                        <?php if ($this->get_option('enable_live_chat', true)): ?>
-                        <button class="quick-action" id="request-live-agent">
-                            👨‍💼 <?php _e('Live Agent', 'cs-chatbot'); ?>
-                        </button>
-                        <?php endif; ?>
-                        <button class="quick-action" id="restart-conversation">
-                            🔄 <?php _e('Restart', 'cs-chatbot'); ?>
-                        </button>
-                    </div>
-                    
-                    <div class="input-area">
-                        <textarea id="message-input" placeholder="<?php echo esc_attr($this->get_option('input_placeholder', __('Type your message...', 'cs-chatbot'))); ?>" rows="1"></textarea>
-                        <button id="send-message" class="send-btn">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="chatbot-footer">
-                    <div class="powered-by">
-                        <?php _e('Powered by', 'cs-chatbot'); ?> <strong>CS Chatbot</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <?php
+        echo '<div id="cs-react-chatbot-root"></div>';
     }
     
     // AJAX Handlers
     public function ajax_send_message() {
-        check_ajax_referer('cs_chatbot_nonce', 'nonce');
-        
-        $message = sanitize_text_field($_POST['message'] ?? '');
-        $conversation_id = intval($_POST['conversation_id'] ?? 0);
-        $visitor_id = sanitize_text_field($_POST['visitor_id'] ?? '');
+        // Check for the new React nonce first, then fall back to the old one for compatibility.
+        // The React app should send 'cs_chatbot_react_nonce'.
+        $nonce_verified = false;
+        if (isset($_REQUEST['_ajax_nonce'])) { // Default nonce field used by wp_localize_script if not specified
+            if (wp_verify_nonce($_REQUEST['_ajax_nonce'], 'cs_chatbot_react_nonce')) {
+                $nonce_verified = true;
+            }
+        } elseif (isset($_POST['nonce'])) { // Fallback for direct POST if React app sends it this way
+             if (wp_verify_nonce($_POST['nonce'], 'cs_chatbot_react_nonce')) {
+                $nonce_verified = true;
+            }
+        }
+
+        // Fallback to old nonce if new one isn't present or fails (for old frontend or other AJAX calls)
+        if (!$nonce_verified && isset($_POST['nonce'])) {
+            if (wp_verify_nonce($_POST['nonce'], 'cs_chatbot_nonce')) {
+                 $nonce_verified = true;
+            }
+        } elseif (!$nonce_verified && isset($_REQUEST['nonce'])) { // Check general $_REQUEST as well for old nonce
+            if (wp_verify_nonce($_REQUEST['nonce'], 'cs_chatbot_nonce')) {
+                $nonce_verified = true;
+            }
+        }
+
+
+        if (!$nonce_verified) {
+            // Try to check REST API nonce if it's a REST request (though this AJAX handler is not typically for REST)
+            // For direct AJAX calls, a nonce is expected.
+            // If this is somehow a REST-style call to admin-ajax.php, this check might be too strict.
+            // However, the React app is configured to use admin-ajax.php and should send the nonce.
+            $is_rest_style_call = strpos($_SERVER['REQUEST_URI'], '/wp-json/') !== false;
+            if (!$is_rest_style_call) { // Only die if not a REST call and nonce failed
+                 wp_send_json_error(['message' => __('Nonce verification failed.', 'cs-chatbot'), 'id' => 'error-' . time()], 403);
+                 return; // Important to stop execution
+            }
+        }
+
+
+        $content_type = isset($_SERVER['CONTENT_TYPE']) ? trim($_SERVER['CONTENT_TYPE']) : '';
+        $is_json_request = strpos($content_type, 'application/json') !== false;
+        $input_data = [];
+
+        if ($is_json_request) {
+            $raw_post_data = file_get_contents('php://input');
+            $input_data = json_decode($raw_post_data, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                wp_send_json_error(['message' => __('Invalid JSON payload.', 'cs-chatbot'), 'id' => 'error-' . time()]);
+                return;
+            }
+        }
+
+        if ($is_json_request) {
+            $message_history = $input_data['messages'] ?? [];
+            // The user's current message is the last one in the history they send
+            $user_current_message_obj = null;
+            if (!empty($message_history)) {
+                // Iterate backwards to find the last 'user' message
+                for ($i = count($message_history) - 1; $i >= 0; $i--) {
+                    if (isset($message_history[$i]['sender']) && $message_history[$i]['sender'] === 'user') {
+                         // Check if this message was already processed (e.g. if client resends history with AI response)
+                         // This logic might need refinement based on how React app structures "resend"
+                        if (empty($message_history[$i]['isProcessed'])) { // Add a flag 'isProcessed' in React before sending
+                            $user_current_message_obj = $message_history[$i];
+                            break;
+                        }
+                    }
+                }
+            }
+            $message = $user_current_message_obj['content'] ?? '';
+
+            $conversation_id = intval($input_data['conversation_id'] ?? $_POST['conversation_id'] ?? 0);
+            $visitor_id = sanitize_text_field($input_data['visitor_id'] ?? $_POST['visitor_id'] ?? $this->get_visitor_id_php());
+
+            $chat_config = $input_data['config'] ?? [];
+            if (isset($chat_config['language']) && in_array($chat_config['language'], ['en', 'th'])) {
+                $this->current_language = $chat_config['language'];
+            }
+        } else {
+            // Existing way of getting params for compatibility or if not JSON
+            // Check AJAX nonce for non-JSON requests
+            check_ajax_referer('cs_chatbot_nonce', 'nonce'); // This will die if nonce is invalid
+            $message = sanitize_text_field($_POST['message'] ?? '');
+            $conversation_id = intval($_POST['conversation_id'] ?? 0);
+            $visitor_id = sanitize_text_field($_POST['visitor_id'] ?? $this->get_visitor_id_php());
+        }
         
         if (empty($message)) {
-            wp_send_json_error(['message' => __('Message cannot be empty', 'cs-chatbot')]);
+            wp_send_json_error(['message' => __('Message cannot be empty', 'cs-chatbot'), 'id' => 'error-' . time()]);
+            return;
         }
         
         // Save user message
+        // Ensure conversation_id is correctly managed (created if 0)
+        if ($conversation_id === 0 && !empty($visitor_id)) {
+            $conversation_id = $this->create_conversation($visitor_id);
+        } elseif (empty($visitor_id)) {
+            // This case should ideally not happen if visitor_id is always sent or generated
+            wp_send_json_error(['message' => __('Visitor ID is missing.', 'cs-chatbot'), 'id' => 'error-' . time()]);
+            return;
+        }
+
         $this->save_message($conversation_id, $visitor_id, $message, 'user');
         
         // Generate AI response
@@ -1191,9 +1232,10 @@ class CSChatbotProfessional {
         $this->save_message($conversation_id, $visitor_id, $ai_response, 'bot');
         
         wp_send_json_success([
-            'response' => $ai_response,
-            'conversation_id' => $conversation_id,
-            'timestamp' => current_time('H:i')
+            'id' => 'assistant-' . time(), // Generate a simple ID for the message
+            'content' => $ai_response,
+            'conversation_id' => $conversation_id, // Keep sending this back
+            'timestamp' => current_time('H:i') // Keep this for potential use
         ]);
     }
     
